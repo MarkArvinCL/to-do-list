@@ -1,134 +1,132 @@
-import { useState, useEffect } from 'react'
-import axios from 'axios'
-import { useNavigate } from 'react-router-dom'
+import { useState, useRef } from "react";
+import axios from 'axios';
+import { Route } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 function App() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+    const containerRef = useRef(null);
+    const navigate = useNavigate();
 
-  const navigate = useNavigate()
-
-  // ✅ Check session on mount
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/get-session`, { withCredentials: true })
-        if (res.data.session) {
-          navigate('/home') // already logged in
+    const handleMouseMove = (e) => {
+        if (containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect();
+            setMousePos({
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top,
+            });
         }
-      } catch (err) {
-        console.error('Session check error:', err)
-      }
-    }
-    checkSession()
-  }, [])
+    };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
+    const handleLogin = async (e) => {
+        e.preventDefault();
+        setError('');
 
-    if (!email || !password) {
-      setError('Email and password are required')
-      return
-    }
+        if (!username.trim() || !password.trim()) {
+            setError('Please fill in all fields');
+            return;
+        }
 
-    setIsLoading(true)
-    try {
-      const res = await axios.post(
-        `${API_URL}/login`,
-        { email, password },
-        { withCredentials: true }
-      )
+        setLoading(true);
+        try {
+            const response = await axios.post(`${API_URL}/login`, { username, password });
+            console.log(response.data);
+            navigate("/home")
+        } catch (error) {
+            console.error('There was an error!', error.response?.data || error.message);
+            setError(error.response?.data?.message || error.message || 'An error occurred');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-      if (res.data.success) {
-        navigate('/home') // redirect after login
-      } else {
-        setError(res.data.message || 'Login failed')
-      }
-    } catch (err) {
-      console.error('Login error:', err.response?.data || err.message)
-      setError(err.response?.data?.message || 'Login failed')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4 relative overflow-hidden">
-
-      <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-500/30 rounded-full blur-3xl"></div>
-      <div className="absolute top-1/3 -right-24 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl"></div>
-
-      <div className="w-full max-w-md relative z-10">
-
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-white mb-2">Welcome Back</h1>
-          <p className="text-slate-300 text-sm">Sign in to continue</p>
-        </div>
-
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white/20 backdrop-blur-xl border border-white/20 rounded-2xl p-8 shadow-xl"
+    return (
+        <div
+            ref={containerRef}
+            onMouseMove={handleMouseMove}
+            className="min-h-screen relative overflow-hidden flex items-center justify-center p-4"
         >
-          {/* Email */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-white mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="w-full px-4 py-3 rounded-lg bg-white/30 text-white placeholder-white/60 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/40 transition"
-            />
-          </div>
+            {/* Animated Background */}
+            <div className="absolute inset-0 bg-linear-to-br from-slate-900 via-teal-900 to-slate-900"></div>
+            <div
+                className="absolute inset-0 opacity-40 blur-3xl"
+                style={{
+                    background: `radial-gradient(600px at ${mousePos.x}px ${mousePos.y}px, rgba(20, 184, 166, 0.2), transparent 80%)`,
+                    transition: 'background 0.1s ease-out',
+                }}
+            ></div>
 
-          {/* Password */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-white mb-1">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full px-4 py-3 rounded-lg bg-white/30 text-white placeholder-white/60 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/40 transition"
-            />
-          </div>
+            {/* Floating Orbs */}
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
 
-          {/* Error */}
-          {error && <p className="text-red-500 mb-4">{error}</p>}
+            {/* Content */}
+            <div className="relative z-10 w-full max-w-sm">
+                <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl hover:shadow-2xl hover:border-white/30 transition-all duration-300 group">
+                    <div className="absolute inset-0 rounded-3xl bg-linear-to-br from-white/5 to-transparent pointer-events-none"></div>
+                    <h1 className="text-2xl font-bold text-center mb-2 text-white relative z-10">Login</h1>
+                    <p className="text-center text-slate-200 text-sm mb-6 relative z-10">Welcome back!</p>
 
-          {/* Forgot Password */}
-          <div className="mb-4 text-right">
-            <a href="#" className="text-sm text-white/70 hover:text-white transition">
-              Forgot password?
-            </a>
-          </div>
+                    {error && (
+                        <p className="text-red-200 text-sm mb-4 bg-red-500/20 backdrop-blur p-3 rounded-lg border border-red-400/30 relative z-10">
+                            {error}
+                        </p>
+                    )}
 
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-3 rounded-lg font-medium text-slate-900 bg-white/90 hover:bg-white transition disabled:opacity-60"
-          >
-            {isLoading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
+                    <form onSubmit={handleLogin} className="relative z-10">
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium mb-2 text-slate-200">Username</label>
+                            <input
+                                type="text"
+                                value={username}
+                                onChange={(e) => {
+                                    setUsername(e.target.value);
+                                    if (error) setError('');
+                                }}
+                                className="w-full px-4 py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-white/40 text-white placeholder-slate-300 transition-all hover:bg-white/15 hover:border-white/30"
+                                placeholder="Enter your username"
+                            />
+                        </div>
 
-        <div className="mt-6 text-center">
-          <p className="text-sm text-white/70">
-            Don’t have an account?{' '}
-            <a href="/register" className="text-white font-medium hover:underline">
-              Sign up
-            </a>
-          </p>
+                        <div className="mb-5">
+                            <label className="block text-sm font-medium mb-2 text-slate-200">Password</label>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => {
+                                    setPassword(e.target.value);
+                                    if (error) setError('');
+                                }}
+                                className="w-full px-4 py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-white/40 text-white placeholder-slate-300 transition-all hover:bg-white/15 hover:border-white/30"
+                                placeholder="Enter your password"
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full py-3 bg-linear-to-r from-teal-500 to-cyan-500 text-white rounded-lg hover:from-teal-600 hover:to-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all disabled:scale-95 scale-100 hover:scale-105 active:scale-95 shadow-lg shadow-teal-500/50"
+                        >
+                            {loading ? 'Logging in...' : 'Login'}
+                        </button>
+                    </form>
+
+                    <div className="mt-6 text-center text-sm text-slate-300 relative z-10">
+                        Don't have an account?{' '}
+                        <a href="/register" className="text-teal-300 hover:text-teal-200 font-medium transition-colors hover:underline">
+                            Sign up
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  )
+    );
 }
 
-export default App
+export default App;
